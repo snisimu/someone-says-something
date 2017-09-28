@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-} {- -*- Coding: utf-8 -*- -}
 
 -- > heroku buildpacks:set https://github.com/mfine/heroku-buildpack-stack.git
+-- > heroku config:set CHANNEL_SECRET={Channel Secret}
+-- > heroku config:set CHANNEL_TOKEN={Access Token}
 
 module Main where
 
@@ -9,6 +11,7 @@ import System.Environment
 import Control.Monad
 import Control.Concurrent.MVar
 
+import Data.Maybe
 import qualified Data.Text as T
 
 import Network.Wai
@@ -22,7 +25,8 @@ import Line.Messaging.Webhook.Types
 import Line.Messaging.Types (Text(..), getText)
 import Line.Messaging.Common.Types (ID)
 
-type MV = MVar T.Text
+type UserID = ID
+type MV = MVar (Maybe (UserID, ReplyToken))
 
 getChannelSecret :: IO ChannelSecret
 getChannelSecret = T.pack <$> getEnv "CHANNEL_SECRET"
@@ -33,7 +37,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar ""
+  mv <- newMVar Nothing
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -50,10 +54,17 @@ handleEvent _ _ = return ()
 
 handleMessageEvent :: MV -> ReplyableEvent EventMessage -> IO ()
 handleMessageEvent mv event = do
+  let replyToken = getReplyToken event
   case getMessage event of
     TextEM mid (Text text) -> do
-      echo (getReplyToken event) text -- [debug]
-    _ -> echo (getReplyToken event) "システム：すみません、それには対応していません"
+      -- echo replyToken text -- [debug]
+      let userID = getID $ getSource event
+      mbU'R <- takeMVar mv
+      when (isJust mbU'R) $ do
+        let (userID', replyToken') = fromJust mbU'R
+        when (userID' /= userID) $ echo replyToken' text
+      putMVar mv $ Just (userID, replyToken)
+    _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
