@@ -73,9 +73,10 @@ handleMessageEvent mv event = do
   head' ([], mines) = head mines
   head' (others, _) = head others
   tail' :: Others'Mines -> Others'Mines
-  tail' ([]    , mine:[]) = ([], [mine])
-  tail' ([]    , mines )  = ([], tail mines)
-  tail' (others, mines )  = (tail others, mines)
+  tail' ([]      , mine:[]) = ([], [mine])
+  tail' ([]      , mines  ) = ([], tail mines)
+  tail' (other:[], mines  ) = ([other], mines)
+  tail' (others  , mines  ) = (tail others, mines)
 
 api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
