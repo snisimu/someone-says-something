@@ -37,7 +37,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar ("", "init")
+  mv <- newMVar ("", "システムより：再起動しました")
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -60,9 +60,7 @@ handleMessageEvent mv event = do
       -- echo replyToken word -- [debug]
       let userID = getID $ getSource event
       (userID', word') <- takeMVar mv
-      if (userID' /= userID)
-      then echo replyToken word'
-      else echo replyToken "同じユーザです" -- "same user"
+      when (userID' /= userID) $ echo replyToken word'
       putMVar mv (userID, word)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
