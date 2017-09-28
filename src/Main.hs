@@ -64,7 +64,11 @@ handleMessageEvent mv event = do
         others'mines = tail' $ fromMaybe forNewUser $ Map.lookup (Just userID) eachUsers
       -- echo replyToken $ head' $ others'mines
       let (others, mines) = others'mines
-      echo replyToken $ T.pack $ show (length others) ++ " , " ++ show (length mines)
+      -- echo replyToken $ T.pack $ show (length others) ++ " , " ++ show (length mines)
+      case (others, mines) of
+        ([],[]) -> echo replyToken "no data"
+        ([], mines) -> echo replyToken $ head mines
+        (others, _) -> echo replyToken $ head others
       let
         appendTheWord = id *** flip (++) [word]
         eachUsers' = Map.insert (Just userID) (appendTheWord $ tail' others'mines) eachUsers
