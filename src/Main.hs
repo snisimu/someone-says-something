@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-} {- -*- Coding: utf-8 -*- -}
 
 -- > heroku buildpacks:set https://github.com/mfine/heroku-buildpack-stack.git
 -- > heroku config:set CHANNEL_SECRET={Channel Secret}
@@ -24,14 +24,9 @@ import Line.Messaging.Webhook ( Event(..), EventMessage(..), ReplyToken(..)
 import Line.Messaging.Webhook.Types
 import Line.Messaging.Types (Text(..), getText)
 import Line.Messaging.Common.Types (ID)
-{-
-import Line.Messaging.API
-import Line.Messaging.Webhook
-import Line.Messaging.Common.Types (ID)
--}
 
 type UserID = ID
-type MV = MVar (UserID, T.Text)
+type MV = MVar (Maybe (UserID, ReplyToken))
 
 getChannelSecret :: IO ChannelSecret
 getChannelSecret = T.pack <$> getEnv "CHANNEL_SECRET"
@@ -42,7 +37,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar ("", "システムより：再起動しました")
+  mv <- newMVar Nothing
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -59,22 +54,22 @@ handleEvent _ _ = return ()
 
 handleMessageEvent :: MV -> ReplyableEvent EventMessage -> IO ()
 handleMessageEvent mv event = do
-  let
-    userID = getReplyToken event
-    replyToken = getID $ getSource event
-  echo replyToken "デバッグ"
-  return ()
+  let replyToken = getReplyToken event
   case getMessage event of
-    TextEM mid (Text word) -> do
-      (userID', word') <- takeMVar mv
-      when (userID' /= userID) $ echo replyToken word'
-      putMVar mv (userID, word)
+    TextEM mid (Text text) -> do
+      -- echo replyToken text -- [debug]
+      let userID = getID $ getSource event
+      mbU'R <- takeMVar mv
+      when (isJust mbU'R) $ do
+        let (userID', replyToken') = fromJust mbU'R
+        when (userID' /= userID) $ echo replyToken' text
+      putMVar mv $ Just (userID, replyToken)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
 
 echo :: ReplyToken -> T.Text -> IO ()
-echo replyToken word = do
-  api $ reply replyToken [ Message $ Text word ]
+echo replyToken content = do
+  api $ reply replyToken [ Message . Text $ content ]
   return ()
