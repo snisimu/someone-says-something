@@ -62,7 +62,7 @@ handleMessageEvent mv event = do
       (userID', word') <- takeMVar mv
       if (userID' /= userID)
       then echo replyToken word'
-      else echo replyToken "same user"
+      else echo replyToken "同じユーザです" -- "same user"
       putMVar mv (userID, word)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
