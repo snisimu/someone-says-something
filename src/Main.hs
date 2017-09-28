@@ -57,22 +57,23 @@ handleMessageEvent mv event = do
       -- echo replyToken word -- [debug]
       let userID = getID $ getSource event
       (allWords, eachUsers) <- takeMVar mv
-      eachUsers' <- case Map.lookup userID eachUsers of
+      let add = Map.map $ \(words, myWords) -> (words ++ [word], myWords)
+      mod <- case Map.lookup userID eachUsers of
         Just ([], []) -> do
-          return $ Map.insert userID ([],[word]) eachUsers
+          return $ Map.insert userID ([],[word])
         Just ([], word':words) -> do
           echo replyToken word'
-          return $ Map.insert userID ([], words++[word]) eachUsers
+          return $ Map.insert userID ([], words++[word])
         Just (word':words, myWords) -> do
           echo replyToken word'
-          return $ Map.insert userID (words++[word], myWords) eachUsers
+          return $ Map.insert userID (words, myWords++[word])
         Nothing -> do
           case allWords of
-            [] -> return $ Map.insert userID ([], [word]) eachUsers
+            [] -> return $ Map.insert userID ([], [word])
             word':words -> do
               echo replyToken word'
-              return $ Map.insert userID (words, [word]) eachUsers
-      putMVar mv (allWords ++ [word], eachUsers')
+              return $ Map.insert userID (words, [word])
+      putMVar mv (allWords ++ [word], mod $ add eachUsers)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)

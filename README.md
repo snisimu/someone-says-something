@@ -5,5 +5,5 @@
 - Herokuにdeployしています。
 - [友だち追加](https://line.me/R/ti/p/FYxWhBxuDv)
 
-![友だち追加](https://github.com/snisimu/someone-says-something/blob/master/src/QR.png?raw=tre)
+![友だち追加](https://github.com/snisimu/someone-says-something/blob/master/image/QR.png?raw=tre)
 
