@@ -62,7 +62,8 @@ handleMessageEvent mv event = do
         userID = getID $ getSource event
         forNewUser = fromJust $ Map.lookup Nothing eachUsers
         others'mines = tail' $ fromMaybe forNewUser $ Map.lookup (Just userID) eachUsers
-      echo replyToken $ head' $ others'mines
+      -- echo replyToken $ head' $ others'mines
+      echo replyToken "debug"
       let
         appendTheWord = id *** flip (++) [word]
         eachUsers' = Map.insert (Just userID) (appendTheWord $ tail' others'mines) eachUsers
