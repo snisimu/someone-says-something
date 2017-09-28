@@ -33,7 +33,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar ("", "システムより：再起動しました")
+  mv <- newMVar ("", "こんにちは")
   run port $ lineBot mv
 
 lineBot :: MV -> Application
