@@ -26,7 +26,7 @@ import Line.Messaging.Types (Text(..), getText)
 import Line.Messaging.Common.Types (ID)
 
 type UserID = ID
-type MV = MVar (Maybe (UserID, T.Text))
+type MV = MVar (UserID, T.Text)
 
 getChannelSecret :: IO ChannelSecret
 getChannelSecret = T.pack <$> getEnv "CHANNEL_SECRET"
@@ -37,7 +37,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar Nothing
+  mv <- newMVar ("", "init")
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -59,14 +59,11 @@ handleMessageEvent mv event = do
     TextEM mid (Text word) -> do
       -- echo replyToken word -- [debug]
       let userID = getID $ getSource event
-      mbU'R <- takeMVar mv
-      case mbU'R of
-        Just (userID', word') -> do
-          if (userID' /= userID)
-          then echo replyToken "D1" -- word'
-          else echo replyToken "D2"
-        Nothing -> echo replyToken "D3"
-      putMVar mv $ Just (userID, word)
+      (userID', word') <- takeMVar mv
+      if (userID' /= userID)
+      then echo replyToken "D1" -- word'
+      else echo replyToken "D2"
+      putMVar mv (userID, word)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
