@@ -71,7 +71,7 @@ handleMessageEvent mv event = do
         (others, _) -> echo replyToken $ head others
       let
         appendTheWord = id *** flip (++) [word]
-        eachUsers' = Map.insert (Just userID) (appendTheWord $ tail' others'mines) eachUsers
+        eachUsers' = Map.insert (Just userID) (tail' $ appendTheWord others'mines) eachUsers
       putMVar mv eachUsers'
     _ -> echo replyToken "システムより：すみません、それには対応していません"
   where
