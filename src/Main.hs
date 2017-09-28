@@ -12,6 +12,7 @@ import Control.Monad
 import Control.Concurrent.MVar
 
 import Data.Maybe
+import Data.Map.Strict as Map
 import qualified Data.Text as T
 
 import Network.Wai
@@ -22,7 +23,7 @@ import Line.Messaging.Webhook
 import Line.Messaging.Common.Types (ID)
 
 type UserID = ID
-type MV = MVar (UserID, T.Text)
+type MV = MVar ([T.Text], Map.Map UserID ([T.Text], [T.Text]))
 
 getChannelSecret :: IO ChannelSecret
 getChannelSecret = T.pack <$> getEnv "CHANNEL_SECRET"
@@ -33,7 +34,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar ("", "こんにちは")
+  mv <- newMVar ([], Map.empty)
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -55,9 +56,23 @@ handleMessageEvent mv event = do
     TextEM mid (Text word) -> do
       -- echo replyToken word -- [debug]
       let userID = getID $ getSource event
-      (userID', word') <- takeMVar mv
-      when (userID' /= userID) $ echo replyToken word'
-      putMVar mv (userID, word)
+      (allWords, eachUsers) <- takeMVar mv
+      eachUsers' <- case Map.lookup userID eachUsers of
+        Just ([], []) -> do
+          return $ Map.insert userID ([],[word]) eachUsers
+        Just ([], word':words) -> do
+          echo replyToken word'
+          return $ Map.insert userID ([], words++[word]) eachUsers
+        Just (word':words, myWords) -> do
+          echo replyToken word'
+          return $ Map.insert userID (words++[word], myWords) eachUsers
+        Nothing -> do
+          case allWords of
+            [] -> return $ Map.insert userID ([], [word]) eachUsers
+            word':words -> do
+              echo replyToken word'
+              return $ Map.insert userID (words, [word]) eachUsers
+      putMVar mv (allWords ++ [word], eachUsers')
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
@@ -67,4 +82,3 @@ echo :: ReplyToken -> T.Text -> IO ()
 echo replyToken word = do
   api $ reply replyToken [ Message $ Text word ]
   return ()
-
