@@ -18,11 +18,7 @@ import Network.Wai
 import Network.Wai.Handler.Warp (run)
 
 import Line.Messaging.API
-import Line.Messaging.Webhook ( Event(..), EventMessage(..), ReplyToken(..)
-                              , ReplyableEvent(..), webhookApp
-                              , defaultOnFailure, getMessage, getReplyToken)
-import Line.Messaging.Webhook.Types
-import Line.Messaging.Types (Text(..), getText)
+import Line.Messaging.Webhook
 import Line.Messaging.Common.Types (ID)
 
 type UserID = ID
