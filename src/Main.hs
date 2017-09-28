@@ -51,7 +51,7 @@ handleMessageEvent mv event = do
   case getMessage event of
     TextEM mid (Text text) -> do
       echo (getReplyToken event) text -- [debug]
-    _ -> echo (getReplyToken event) "すみません、それには対応していません"
+    _ -> echo (getReplyToken event) "システム：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
