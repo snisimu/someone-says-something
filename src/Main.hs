@@ -61,8 +61,8 @@ handleMessageEvent mv event = do
       let userID = getID $ getSource event
       (userID', word') <- takeMVar mv
       if (userID' /= userID)
-      then echo replyToken "D1" -- word'
-      else echo replyToken "D2"
+      then echo replyToken word'
+      else echo replyToken "same user"
       putMVar mv (userID, word)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
