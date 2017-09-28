@@ -57,12 +57,13 @@ handleMessageEvent mv event = do
   let replyToken = getReplyToken event
   case getMessage event of
     TextEM mid (Text word) -> do
-      -- echo replyToken word -- [debug]
+      echo replyToken word -- [debug]
+      return ()
       let userID = getID $ getSource event
       mbU'R <- takeMVar mv
       when (isJust mbU'R) $ do
         let (userID', word') = fromJust mbU'R
-        when (userID' /= userID) $ echo replyToken word'
+        when (userID' /= userID) $ echo replyToken "デ" -- word'
       putMVar mv $ Just (userID, word)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
