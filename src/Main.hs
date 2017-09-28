@@ -53,6 +53,8 @@ handleMessageEvent mv event = do
   let
     userID = getReplyToken event
     replyToken = getID $ getSource event
+  echo replyToken "デバッグ"
+  return ()
   case getMessage event of
     TextEM mid (Text word) -> do
       (userID', word') <- takeMVar mv
