@@ -26,7 +26,7 @@ import Line.Messaging.Types (Text(..), getText)
 import Line.Messaging.Common.Types (ID)
 
 type UserID = ID
-type MV = MVar (Maybe (UserID, ReplyToken))
+type MV = MVar (UserID, T.Text)
 
 getChannelSecret :: IO ChannelSecret
 getChannelSecret = T.pack <$> getEnv "CHANNEL_SECRET"
@@ -37,7 +37,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar Nothing
+  mv <- newMVar ("", "システムより：再起動しました")
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -54,22 +54,20 @@ handleEvent _ _ = return ()
 
 handleMessageEvent :: MV -> ReplyableEvent EventMessage -> IO ()
 handleMessageEvent mv event = do
-  let replyToken = getReplyToken event
+  let
+    userID = getReplyToken event
+    replyToken = getID $ getSource event
   case getMessage event of
-    TextEM mid (Text text) -> do
-      -- echo replyToken text -- [debug]
-      let userID = getID $ getSource event
-      mbU'R <- takeMVar mv
-      when (isJust mbU'R) $ do
-        let (userID', replyToken') = fromJust mbU'R
-        when (userID' /= userID) $ echo replyToken' text
-      putMVar mv $ Just (userID, replyToken)
+    TextEM mid (Text word) -> do
+      (userID', word') <- takeMVar mv
+      when (userID' /= userID) $ echo replyToken word'
+      putMVar mv (userID, word)
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
 
 echo :: ReplyToken -> T.Text -> IO ()
-echo replyToken content = do
-  api $ reply replyToken [ Message . Text $ content ]
+echo replyToken word = do
+  api $ reply replyToken [ Message $ Text word ]
   return ()
