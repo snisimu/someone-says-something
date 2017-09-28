@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-} {- -*- Coding: utf-8 -*- -}
 
+-- > heroku buildpacks:set https://github.com/mfine/heroku-buildpack-stack.git
+
 module Main where
 
 import System.Environment
