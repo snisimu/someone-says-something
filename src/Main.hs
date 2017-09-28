@@ -24,7 +24,8 @@ import Line.Messaging.Webhook
 import Line.Messaging.Common.Types (ID)
 
 type UserID = ID
-type MV = MVar ([T.Text], Map.Map UserID ([T.Text], [T.Text]))
+type Others'Mines = ([T.Text], [T.Text])
+type MV = MVar (Map.Map (Maybe UserID) Others'Mines)
 
 getChannelSecret :: IO ChannelSecret
 getChannelSecret = T.pack <$> getEnv "CHANNEL_SECRET"
@@ -35,7 +36,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar ([], Map.empty)
+  mv <- newMVar $ Map.singleton Nothing ([],[])
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -55,31 +56,26 @@ handleMessageEvent mv event = do
   let replyToken = getReplyToken event
   case getMessage event of
     TextEM mid (Text word) -> do
-      -- echo replyToken word -- [debug]
-      let userID = getID $ getSource event
-      (allWords, eachUsers) <- takeMVar mv
-      let add = Map.map $ (:) word *** id
-      myNewValue <- case Map.lookup userID eachUsers of
-        Just ([], []) -> do
-          return ([],[word])
-        Just ([], word':words) -> do
-          echo replyToken word'
-          return ([], words++[word])
-        Just (word':words, myWords) -> do
-          echo replyToken word'
-          return (words, myWords++[word])
-        Nothing -> do
-          case allWords of
-            [] -> do
-              return ([], [word])
-            word':words -> do
-              echo replyToken word'
-              return (words, [word])
+      let addTheWord = (:) word *** id
+      eachUsers <- Map.map addTheWord <$> takeMVar mv
       let
-        allWords' = allWords ++ [word]
-        eachUsers' = Map.insert userID myNewValue mod $ add eachUsers
-      putMVar mv (allWords', eachUsers')
+        userID = getID $ getSource event
+        forNewUser = fromJust $ Map.lookup Nothing eachUsers
+        others'mines = tail' $ fromMaybe forNewUser $ Map.lookup (Just userID) eachUsers
+      echo replyToken $ head' $ others'mines
+      let
+        appendTheWord = id *** flip (++) [word]
+        eachUsers' = Map.insert (Just userID) (appendTheWord $ tail' others'mines) eachUsers
+      putMVar mv eachUsers'
     _ -> echo replyToken "システムより：すみません、それには対応していません"
+  where
+  head' :: Others'Mines -> T.Text
+  head' ([], mines) = head mines
+  head' (others, _) = head others
+  tail' :: Others'Mines -> Others'Mines
+  tail' ([]    , mine:[]) = ([], [mine])
+  tail' ([]    , mines )  = ([], tail mines)
+  tail' (others, mines )  = (tail others, mines)
 
 api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
@@ -88,4 +84,3 @@ echo :: ReplyToken -> T.Text -> IO ()
 echo replyToken word = do
   api $ reply replyToken [ Message $ Text word ]
   return ()
-
