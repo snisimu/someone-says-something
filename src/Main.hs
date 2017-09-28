@@ -9,6 +9,7 @@ module Main where
 import System.Environment
 
 import Control.Monad
+import Control.Arrow
 import Control.Concurrent.MVar
 
 import Data.Maybe
@@ -57,23 +58,27 @@ handleMessageEvent mv event = do
       -- echo replyToken word -- [debug]
       let userID = getID $ getSource event
       (allWords, eachUsers) <- takeMVar mv
-      let add = Map.map $ \(words, myWords) -> (words ++ [word], myWords)
-      mod <- case Map.lookup userID eachUsers of
+      let add = Map.map $ (:) word *** id
+      myNewValue <- case Map.lookup userID eachUsers of
         Just ([], []) -> do
-          return $ Map.insert userID ([],[word])
+          return ([],[word])
         Just ([], word':words) -> do
           echo replyToken word'
-          return $ Map.insert userID ([], words++[word])
+          return ([], words++[word])
         Just (word':words, myWords) -> do
           echo replyToken word'
-          return $ Map.insert userID (words, myWords++[word])
+          return (words, myWords++[word])
         Nothing -> do
           case allWords of
-            [] -> return $ Map.insert userID ([], [word])
+            [] -> do
+              return ([], [word])
             word':words -> do
               echo replyToken word'
-              return $ Map.insert userID (words, [word])
-      putMVar mv (allWords ++ [word], mod $ add eachUsers)
+              return (words, [word])
+      let
+        allWords' = allWords ++ [word]
+        eachUsers' = Map.insert userID myNewValue mod $ add eachUsers
+      putMVar mv (allWords', eachUsers')
     _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
@@ -83,3 +88,4 @@ echo :: ReplyToken -> T.Text -> IO ()
 echo replyToken word = do
   api $ reply replyToken [ Message $ Text word ]
   return ()
+
