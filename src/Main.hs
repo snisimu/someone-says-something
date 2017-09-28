@@ -67,3 +67,4 @@ echo :: ReplyToken -> T.Text -> IO ()
 echo replyToken word = do
   api $ reply replyToken [ Message $ Text word ]
   return ()
+
