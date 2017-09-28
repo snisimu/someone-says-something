@@ -77,7 +77,7 @@ handleMessageEvent mv event = do
   tail' :: Others'Mines -> Others'Mines
   tail' ([]      , mine:[]) = ([], [mine])
   tail' ([]      , mines  ) = ([], tail mines)
-  tail' (other:[], mines  ) = ([other], mines)
+  tail' (other:[], []     ) = ([other], [])
   tail' (others  , mines  ) = (tail others, mines)
 
 api :: APIIO a -> IO (Either APIError a)
