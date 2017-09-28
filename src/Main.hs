@@ -64,6 +64,6 @@ api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
 
 echo :: ReplyToken -> T.Text -> IO ()
-echo replyToken content = do
-  api $ reply replyToken [ Message . Text $ content ]
+echo replyToken word = do
+  api $ reply replyToken [ Message $ Text word ]
   return ()
