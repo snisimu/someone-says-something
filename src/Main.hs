@@ -33,7 +33,7 @@ getChannelToken = T.pack <$> getEnv "CHANNEL_TOKEN"
 main :: IO ()
 main = do
   port <- maybe 80 read <$> lookupEnv "PORT" :: IO Int
-  mv <- newMVar ("", "システムより：\n再起動しました")
+  mv <- newMVar ("", "システムより：再起動しました")
   run port $ lineBot mv
 
 lineBot :: MV -> Application
@@ -58,7 +58,7 @@ handleMessageEvent mv event = do
       (userID', word') <- takeMVar mv
       when (userID' /= userID) $ echo replyToken word'
       putMVar mv (userID, word)
-    _ -> echo replyToken "システムより：\nすみません、それには対応していません"
+    _ -> echo replyToken "システムより：すみません、それには対応していません"
 
 api :: APIIO a -> IO (Either APIError a)
 api = runAPI getChannelToken
